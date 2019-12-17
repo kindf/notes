@@ -1,5 +1,65 @@
 <details>
-  <summary>Hello World服务端代码</summary>
+  <summary>socket编程相关API</summary>
+    <pre><code>
+#include &ltsys/socket.h>
+int socket(int domain, int type, int protocol);
+//成功时返回文件描述符，失败返回-1()
+
+#include &ltsys/socket.h>
+int bind(int sockfd, struct sockaddr *myaddr, socklen_t addrlen);
+//成功时返回0，失败时返回-1
+
+#include &ltsys/socket.h>
+int listen(int sockfd, int backlog);
+//成功时返回0，失败时返回-1
+
+#include &ltsys/socket.h>
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+//成功时返回文件描述符，失败返回-1
+
+#include &ltsys/socket.h>
+int connect(int sockfd, struct sockaddr *serv_addr, socklen_t addrlen);
+//成功时返回0，失败时返回-1
+
+
+    </code></pre>
+</details>
+
+<details>
+    <summary>基于Linux的文件操作</summary>
+        <pre><code>
+#include &ltsys/types.h>
+#include &ltsys/stat.h>
+#include &ltfcntl.h>
+int open(const char *path, int flag);
+//成功时返回文件描述符，失败返回-1
+//path 文件名的字符串地址，flag 文件打开模式信息
+            
+#include &ltunistd.h>
+int close(int fd);
+//成功时返回0，失败时返回-1
+//fd 需要关闭的文件或套接字的文件描述符
+
+#include &ltunistd.h>
+ssize_t write(int fd, const void *buf, size_t nbytes);
+//成功时返回写入的字节数，失败时返回-1
+//fd 显示数据传输对象的文件描述符
+//buf 保存要传输数据的缓冲地址值
+//nbytes 要传输数据的字节数
+//ssize_t是signed int类型 size_t是unsigned int类型
+
+#include &ltunistd.h>
+ssize_t read(int fd, void *buf, size_t nbytes);
+//成功时返回接收的字节数(但遇到文件结尾则返回0)，失败时返回-1
+//fd 显示数据接收对象的文件描述符
+//buf 要保存接收数据的缓冲地址值
+//nbytes 要接收数据的最大字节数
+  
+        </code></pre>
+</details>
+
+<details>
+  <summary>Hello World服务器端(hello_server)</summary>
   <pre><code>  
 #include &ltstdio.h>
 #include &ltstdlib.h>
@@ -25,7 +85,8 @@ int main(int argc, char *argv[])
 		printf("Usage:%s <port>\n", argv[0]);
 		exit(1);
 	}
-	serv_sock = socket(PF_INET, SOCK_STREAM, 0);			//调用socket函数创建套接字
+	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+    //调用socket函数创建套接字    
 	if(serv_sock == -1)	
 		error_handling("socket() error")
 	
@@ -34,14 +95,17 @@ int main(int argc, char *argv[])
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(atoi(argv[1]));
 
-	if(bind(serv_sock, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) == -1)			//bind函数分配ip地址和端口号
+	if(bind(serv_sock, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) == -1)
+    //bind函数分配ip地址和端口号
 		error_handling("bind() error");
 
-	if(listen(serv_sock, 5) == -1)					//调用listen函数将套接字转为可接收连接状态
+	if(listen(serv_sock, 5) == -1)
+    //调用listen函数将套接字转为可接收连接状态    
 		error_handling("listen() error");
 
 	clnt_addr_size = sizeof(clnt_addr);
-	clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);		//调用accept函数受理连接请求。如果在没有连接请求的情况下调用该函数，则不会返回，直到有连接请求为止
+	clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
+    //调用accept函数受理连接请求。如果在没有连接请求的情况下调用该函数，则不会返回，直到有连接请求为止
 	if(clnr_sock == -1)
 		error_handling("accept() error");
 
@@ -61,7 +125,7 @@ void error_handling(char *message)
 </details>
 
 <details>
-  <summary>Hello World客户端代码</summary>
+  <summary>Hello World服务器客户端(hello_client)</summary>
   <pre><code> 
 #include &ltstdio.h>
 #include &ltstdlib.h>
@@ -111,7 +175,7 @@ void error_handling(char *message)
 </details>
 
 <details>
-  <summary>迭代回音服务器端（echo_server）</summary>
+  <summary>迭代回音服务器端（tcp_echo_server）</summary>
   <pre><code> 
 #include &ltstdio.h>
 #include &ltstdlib.h>
@@ -183,7 +247,7 @@ void error_handling(char * message)
 </details>
 
 <details>
-  <summary>迭代回音服务器客户端（echo_client）</summary>
+  <summary>迭代回音服务器客户端（tcp_echo_client）</summary>
   <pre><code> 
 #include &ltstdio.h>
 #include &ltstdlib.h>
