@@ -1,3 +1,13 @@
+<p>产生僵尸进程的原因</p>
+子进程exit或return后操作系统并不会销毁进程，需要主进程做相关的处理，否则就会成为僵尸进程
+ps后进程状态stat为Z+即为僵尸进程
+
+<p>调用fork()产生的子进程复制了父进程的文件描述符(并没有复制套接字),这意味着一个套接字可以对应多个文件描述符</p>
+
+select性能不好的两个原因
+1.调用select后常见的针对所有文件描述符对象的循环语句
+2.(主要)每次调用select时需要传递的监视对象信息(应用程序向操作系统传递数据将对程序造成很大负担且无法通过优化代码解决)
+
 <details>
   <summary>socket编程相关API</summary>
     <pre><code>
@@ -28,11 +38,85 @@ int shutdown(int sock, int howto);
 //howto 传递断开方式信息
 //howto的值：SHUT_RD,SHUT_WR,SHUT_RDWR
 
-    </code></pre>
+#include &ltsys/socket.h>
+int getsockopt(int sock, int level, int optname, void *optval, socklen_t *optlen);
+//成功时返回0，失败时返回-1
+//sock 用于查看选项套接字文件描述符
+//level 要查看的可选项的协议层
+//optname 要查看的可选项名
+//optval 保存查看结果的缓冲地址值
+//optlen 向第四个参数optval传递的缓冲大小，调用函数后，该变量中保存通过第四个参数返回的可选项信息的字节数
+
+#include &ltsys/socket.h>
+int setsockopt(int sock, int level, int optname, const void *optval, socklen_t optlen);
+//成功时返回0，失败时返回-1
+//sock 用于更改可选项的套接字文件描述符
+//level 要更改的可选项协议层
+//optname 要更改的可选项名
+//optval 保存要更改的选项信息的缓冲地址值
+//optlen 向第四个参数optval传递的可选项信息的字节数
+    
+#include &ltsys/select.h>
+#include ltSys/time.h>
+int select(int maxfd, fd_set *readset, fd_set *writeset, fd_set *exceptset, const struct timeval *timeout);
+//成功时返回大于0的值，失败时返回-1
+//maxfd 监视对象文件描述符数量
+//readset 将所有关注"是否存在待读取数据"的文件描述注册到fd_set型变量,并传递其地址值
+//writeset 将所有关注"是否可传输无阻塞数据"的文件描述注册到fd_set型变量,并传递其地址值
+//exceptset 将所有关注"是否发生异常"的文件描述注册到fd_set型变量,并传递其地址值
+//timeout 调用select函数后,为防止无限阻塞的状态,传递超时(time-out)信息
+//返回值 发生错误时返回-1,超时返回时返回0。因发生关注的事件返回时,返回大于0的值,该值是发生事件的文件描述符数
+
+FD_ZERO(fd_set *fdset)
+//将fd_set变量的所有位初始化为0
+
+FD_SET(int fd, fd_set *fdset)
+//在参数fdset指向的变量中注册文件描述符fd的信息
+
+FD_CLR(int fd, fd_set *fdset)
+//从参数fdset指向的变量中清除文件描述符fd的信息
+
+FD_ISSET(int fd, fd_set *fdset)
+//若参数fdset指向的变量中包含文件描述符fd的信息, 则返回true
+
+#include &ltsys/epoll.h>
+int epoll_create(int size);
+//成功时返回epoll文件描述符,失败时返回-1
+//调用该函数创建的文件描述符保存空间称为“epoll例程”
+//size并不能决定epoll例程的大小，仅作参考作用
+
+#include &ltsys/epoll.h>
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+//成功时返回0，失败时返回-1
+//epfd 用于注册监视对象的epoll例程的文件描述符
+//op 用于指定监视对象的添加、删除或更改等操作
+//fd 需要注册的监视对象文件描述符
+//event 监视对象的事件类型
+//EPOLL_CTL_ADD:将文件描述符注册到epoll例程
+//EPOLL_CTL_DEL:从epoll例程中删除文件描述符
+//EPOLL_CTL_MOD: 更改注册的文件描述符的关注事件发生情况
+
+//epoll_event结构体中events的参数
+//EPOLLIN:需要读取数据的情况
+//EPOLLOUT:输出缓存为空,可以立即发送数据的情况
+//EPOLLRPT:收到OOB数据的情况
+//EPOLLRDHUP:断开连接或半关闭的情况,这在边缘触发方式下非常有用
+//EPOLLERR:发生错误的情况
+//EPOLLET:以边缘触发的方式得到事件通知
+//EPOLLONESHOT:发生一次事件后,相应文件描述符不再收到事件通知,因此需要向epoll_ctl函数的第二个参数传递EPOLL_CTL_MOD,再次设置事件	
+	
+#include &ltsys/epoll.h>
+int epoll_wait(int epfd, struct epoll_events, int maxevents, int timeout);
+//成功时返回事件的文件描述符,失败时返回-1
+//epfd 表示事件发生监视范围的epoll例程的文件描述符
+//events 保存发生事件的文件描述符集合的结构体地址值
+//maxevents 第二个参数中可以保存的最大事件数
+//timeout 以1/1000秒为单位的等待时间,传递-1时,一直等待直到发生事件
+	</code></pre>
 </details>
 
 <details>
-    <summary>基于Linux的文件操作</summary>
+    <summary>基于Linux相关函数调用</summary>
         <pre><code>
 #include &ltsys/types.h>
 #include &ltsys/stat.h>
@@ -60,7 +144,35 @@ ssize_t read(int fd, void *buf, size_t nbytes);
 //fd 显示数据接收对象的文件描述符
 //buf 要保存接收数据的缓冲地址值
 //nbytes 要接收数据的最大字节数
-  
+ 
+#include &ltunistd.h>
+pid_t fork(void);
+//成功时父进程返回进程id，子进程返回0，失败时返回-1
+//创建后两个进程都将执行fork后的语句
+
+#include &ltsys/wait.h>
+pid_t wait(int *statloc);
+//成功时返回终止的子进程id，失败时返回-1
+//若没有已经终止的子进程，将阻塞知道有子进程终止
+
+#include &Ltsys/wait.h>
+pid_t waitpid(pid_t pid, int* statloc, int options);
+//成功时返回终止的子进程id(或0),失败时返回-1
+//pid 等待终止的目标子进程的id，传-1则等待任意子进程终止
+//statloc 与wait的statloc参数具有相同含义
+//options 传递头文件sys/wait.h中声明的常量WNOHANG，及时没有终止的子程序也不会进入阻塞状态，而是返回0并退出函数
+        </code></pre>
+</details>
+
+<details>
+    <summary>基于Linux的指令</summary>
+        <pre><code>
+ps	--查看Linux中正在运行的进程
+ls	--查看当前目录
+pwd	--查看当前路径
+touch --创建文件
+mkdir --创建文件夹
+
         </code></pre>
 </details>
 
@@ -131,8 +243,8 @@ void error_handling(char *message)
 </details>
 
 <details>
-  <summary>Hello World服务器客户端(hello_client)</summary>
-  <pre><code> 
+	<summary>Hello World服务器客户端(hello_client)</summary>
+	<pre><code> 
 #include &ltstdio.h>
 #include &ltstdlib.h>
 #include &ltstring.h>
@@ -177,7 +289,8 @@ void error_handling(char *message)
 	fputc('\n', stderr);
 	exit(1);
 }
-  </code></pre>
+
+	</code></pre>
 </details>
 
 <details>
@@ -563,6 +676,337 @@ void error_handling(char *message)
 	fputs(message, stderr);
 	fputc('\n', stderr);
 	eixt(1);
+}
+		</code></pre>
+</details>
+
+<details>
+	<summary>多进程并发回声服务器端(echo_mpserv)</summary>
+		<pre><code>
+#include &ltstdio.h>
+#include &ltstdlib.h>
+#include &ltstring.h>
+#include &ltunistd.h>
+*include &ltsignal.h>
+#include &ltsys/wait.h>
+#inlcude &ltarpa/inet.h>
+#include &ltsys/socket.h>
+
+#define BUF_SIZE 30
+void error_handling(char *message);
+void read_childproc(int sig);
+
+int main(int argc, char *argv[])
+{
+	int serv_sock, clnt_sock;
+	struct sockaddr_in serv_adr, clnt_adr;
+	
+	pid_t pid;
+	struct sigaction act;
+	socklen_t adr_sz;
+	int str_len, state;
+	char buf[BUF_SIZE];
+	if(argc != 2)
+	{
+		prinfg("Usage: %s <port>\n", argv[0]);
+		exit(1);
+	}
+	
+	act.sa_handler = read_childproc;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = 0;
+	state = sigaction(SIGCHLD, &act, 0);
+	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+	memset(&serv_adr, 0, sizeof(serv_adr));
+	serv_adr.sin_family = AF_INET;
+	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
+	aerv_adr.sin_port = htons(atoi(argv[1]));
+	
+	if(bind(serv_sock, (struct sockaddr*) &serv_adr, sizeof(serv_adr))== -1)
+		error_handling("bind() error");
+	if(listen(serv_sock, 5) == -1)
+		error_handling("listen() error");
+	
+	while(1)
+	{
+		adr_sz = sizeof(clnt_adr);
+		clnt_sock = accept(serv_sock, (struct sockaddr*) &clnt_adr, adr_sz);
+		if(clnt_sock == -1)
+			continue;
+		else
+			puts("new client connect...");
+		pid = fork();
+		if(pid == -1)
+		{
+			close)clnt_sock);
+			continue;
+		}
+		if(pid == 0)
+		{
+			close(serv_sock);
+			while((str_len = read(clnt_sock, buf, BUF_SIZE)) != 0)
+				write(clnt_sock, buf, str_len);
+				
+			close(clnt_sock);
+			puts("client disconnected...");
+			return 0;
+		}
+		else
+			close(clnt_sock);
+	}
+	close(serv_sock);
+	return 0;
+}
+
+void read_childproc(int sig)
+{
+	pid_t pid;
+	int status;
+	pid = waitpid(-1, &status, WNOHANG);
+	printf("removed proc id %d \n", pid);
+}
+
+void error_handling(char *message)
+{
+	fputs(message, stderr);
+	fputc('\n', stderr);
+	exit(1);
+}
+		</code></pre>
+</details>
+
+<details>
+	<summary>回声客户端的io程序分割(echo_mpclient)</summary>
+		<pre><code>
+#include &ltstdio.h>
+#include &ltstdlib.h>
+#include &ltstring.h>
+#include &ltunistd.h>
+#inlcude &ltarpa/inet.h>
+#include &ltsys/socket.h>
+
+#define BUF_SIZE 30
+void error_handling(char *message);
+void read_routine(int sock, char *buf);
+void write_routine(int sock, char *buf);
+
+int main(int argc, char *argv[])
+{
+	int sock;
+	pid_t pid;
+	char buf[BUF_SIZE};
+	struct sockaddr_in serv_adr;
+	if(argc != 3)
+	{
+		printf("Usage: %s <IP> <port>\n", argv[0]);
+		exit(1);
+	}
+	
+	sock = socket(PF_INET, SOCK_STREAM, 0);
+	memset(&serv_adr, 0, sizeof(serv_adr));
+	serv_adr.sin_family = AF_INET;
+	serv_adr.sin_addr.s_addr = inet_addr(argv[1]);
+	serv_adr.sin_port = htons(atoi(argv[2]));
+	
+	if(connect(sock, (struct sockaddr*) &serv_adr, sizeof(serv_adr)) == -1)
+		error_handling("connect() error!");
+		
+	pid = fork();
+	if(pid == 0);
+		write_routine(sock, buf);
+	else
+		read_routine(sock, buf);
+	close(sock);
+	return 0;
+}
+
+void read_routine(int sock, char *buf)
+{
+	while(1)
+	{
+		int str_len = read(sock, buf, BUF_SIZE);
+		if(str_len == 0)
+			return;
+			
+		buf[str_len] = 0;
+		printf("Message from server: %s", buf);
+	}
+}
+
+void write_routine(int sock, char *buf)
+{
+	while(1)
+	{
+		fgets(buf, BUF_SIZE, stdin);
+		if(!strcmp(buf, "q\n") || !strcmp(buf, "Q\n"))
+		{
+			shutdown(sock, SHUT_WR);
+			return;
+		}
+		write(sock, buf, strlen(buf));
+	}
+}
+
+void error_handling(char *message)
+{
+	fputs(message, stderr);
+	fputc('\n', stderr);
+	exit(1);
+}
+	
+		</code></pre>
+</details>
+
+<details>
+	<summary>select函数调用示例(echo_mpclient)</summary>
+		<pre><code>
+#include &ltstdio.h>
+#include &ltunistd.h>
+#include &ltsys/time.h>
+#include &ltsys/select.h>
+#define BUF_SIZE 30
+
+int main(int argc, char *argv[])
+{
+	fd_set reads, temps;
+	int result, str_len;
+	char buf[BUF_SIZE];
+	struct timeval timeout;
+	
+	FD_ZERO(&reads);
+	FD_SET(0, &reads); //0 is standard input
+	
+	/*
+	timeout.tv_sec = 5;
+	timeout.tv_usec = 5000;
+	*/
+	
+	while(1)
+	{
+		temps = reads;
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
+		result = select(1, &temps, 0, 0, &timeout);
+		if(result == -1)
+		{
+			puts("select() error!");
+			break;
+		}
+		else if(result == 0)
+		{
+			puts("Time-out!");
+		}
+		else
+		{
+			if(FD_ISSET(0, &temps))
+			{
+				str_len = read(0, buf, BUF_SIZE);
+				buf[str_len] = 0;
+				printf("message from console: %s", buf);
+			}
+		}
+	}
+	return 0;
+}
+		</code></pre>
+</details>
+
+<details>
+	<summary>基于epoll的回声服务器端(echo_epollserv)</summary>
+		<pre><code>
+#include &ltstdio.h>
+#include &ltstdlib.h>
+#include &ltstring.h>
+#include &ltunistd.h>
+#include &ltarpa/inet.h>
+#include &ltsys/socket.h>
+#include &ltsys/epoll.h>
+
+#define BUF_SIZE 100
+#define EPOLL_SIZE 50
+void error_handling(char *buf);
+
+int main(int argc, char *argv[])
+{
+	int ser_sock, clnt_sock;
+	struct sockaddr_in serv_adr, clnt_adr;
+	socklen_t adr_sz;
+	int str_len, i;
+	char buf[BUF_SIZE};
+	
+	struct epoll_event *ep_events;
+	struct epoll_event event;
+	int epfd, event_cnt;
+	
+	if(argc != 2)
+	{
+		printf("Usage: %s <port>\n", argv[0]);
+		exit(1);
+	}
+	serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+	memset(&serv_adr, 0, sizeof(serv_adr));
+	serv_adr.sin_family = AF_INET;
+	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serv_adr.sin_port = htons(atoi(argv[1]));
+	
+	if(bind(serv_sock, (struct sockaddr*) &serv_adr, sizeof(serv_adr)) == -1)
+		error_handling("bind() error")
+	if(listen(serv_sock, 5) == -1)
+		error_handling("listen() error");
+		
+	epfd = epoll_create(EPOLL_SIZE);
+	ep_events = malloc(sizeof(struct epoll_event) *EPOLL_SIZE);
+	
+	event.events = EPOLLIN;
+	event.data.fd = serv_sock;
+	epoll_ctl(epfd, EPOLL_CTL_ADD, serv_sock, &event);
+	
+	while(1)
+	{
+		event_cnt = epoll_wait(epfd, ep_events, EPOLL_SIZE, -1);
+		if(event_cnt == -1)
+		{
+			puts("epoll_wait() error");
+			break;
+		}
+		
+		for(i = 0; i < event_cnt; i++)
+		{
+			if(ep_events[i].data.fd == serv_sock)
+			{
+				adr_sz = sizeof(clnt_adr);
+				clnt_sock = accept(serv_sock, (struct sockaddr*) &clnt_adr, &adr_sz);
+				event.events = EPOLLIN;
+				event.data.fd = clnt_sock;
+				epoll_ctl(spfd, EPOLL_CTL_ADD, clnt_sock, &event);
+				printf("connected client: %d \n", clnt_sock);
+			}
+			else
+			{
+				str_len = read(ep_events[i].data.fd, buf, BUF_SIZE);
+				if(str_len == 0) //close request
+				{
+					epoll_ctl(epfd, EPOLL_CTL_DEL, ep_events[i].data.fd, NULL);
+					close(ep_events[i].data.fd);
+					printf("close client: %d \n", ep_events[i].data.fd);
+				}
+				eles
+				{
+					write(ep_events[i].data.fd, buf, str_len);//echo!
+				}
+			}
+		}
+	}
+	close(serv_sock);
+	close(epfd);
+	return 0;
+}
+
+void error_handling(char *buf)
+{
+	fputs(buf, stderr);
+	fputc('\n'. stderr);
+	exit(1);
 }
 		</code></pre>
 </details>
