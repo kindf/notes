@@ -1,12 +1,55 @@
-<p>产生僵尸进程的原因</p>
-子进程exit或return后操作系统并不会销毁进程，需要主进程做相关的处理，否则就会成为僵尸进程
-ps后进程状态stat为Z+即为僵尸进程
+---
+title: "《TCP/IP网络编程》读书笔记"
+date: 2019-12-16T22:31:01+08:00
+draft: true
+---
+<p>产生僵尸进程的原因
+    <br>子进程exit或return后操作系统并不会销毁进程，需要主进程做相关的处理，否则就会成为僵尸进程
+    <br>ps后进程状态stat为Z+即为僵尸进程
+</p>
 
 <p>调用fork()产生的子进程复制了父进程的文件描述符(并没有复制套接字),这意味着一个套接字可以对应多个文件描述符</p>
 
-select性能不好的两个原因
-1.调用select后常见的针对所有文件描述符对象的循环语句
-2.(主要)每次调用select时需要传递的监视对象信息(应用程序向操作系统传递数据将对程序造成很大负担且无法通过优化代码解决)
+<p>select性能不好的两个原因
+    <br>1.调用select后常见的针对所有文件描述符对象的循环语句
+    <br>2.(主要)每次调用select时需要传递的监视对象信息(应用程序向操作系统传递数据将对程序造成很大负担且无法通过优化代码解决)
+</p>
+
+<p>文件描述符(文件句柄):呼应操作系统创建的文件或者套接字的代号</p>
+<hr />
+<p>int socket(int domin, int type, int protocol)参数说明:
+    <pre><br>domin:套接字的协议族(PF_INET-ipv4协议族, PF_INET6-ipv6协议族)
+    <br>type:套接字的传输方式(SOCK_STREAM-面向连接的数据传输方式, SOCK_DGRAM-面向消息的数据传输方式)
+    <br>protocol:决定最终采用的协议(同一协议族中存在多个传输方式相同的协议,故需要该参数决定采用的协议),但大部分情况下可以通过前两个参数即可创建所需的套接字
+    <br>满足PF_INET,SOCK_STREAM的协议只有IPPROTO_TCP协议(故可以传0)
+    <br>满足PF_INET,SOCK_DGRAM的协议只有IPPROTO_UDP协议(故可以传0)
+</pre></p>
+
+<p>关于套接字缓冲区:
+    <br>调用send接口实际上是将数据复制到发送缓冲区中,内核实际上是按照最大MSS大小从缓冲区发送数据的,发送的数据知道被对端确认才从缓冲区中删除
+</p>
+
+<p>socket地址结构体:
+    <pre><code>
+struct sockaddr_in
+{
+    sa_family_t     sin_family; //地址族(AF_INET-ipv4使用的地址族,AF_INET6-ipv6使用的地址族)
+    uint16_t        sin_port;   //16位TCP/UDP端口号(以网络字节序保存)
+    struct in_addr  sin_addr;   //32位IP地址(以网络字节序保存)
+    char            sin_zero[8]; //不使用
+};
+        
+struct in_addr
+{
+    In_addr_t   s_addr; //32位Ipv4地址
+};
+
+unsigned short htons(unsinged short); //用于端口号转换
+unsigned short ntohs(unsinged short); //用于端口号转换
+unsigned long htonl(unsigned long);   //用于ip地址转换
+unsigned long ntohl(usigned long);    //用于ip地址转换
+    </code></pre>
+</p>
 
 <details>
   <summary>socket编程相关API</summary>
@@ -46,6 +89,10 @@ int getsockopt(int sock, int level, int optname, void *optval, socklen_t *optlen
 //optname 要查看的可选项名
 //optval 保存查看结果的缓冲地址值
 //optlen 向第四个参数optval传递的缓冲大小，调用函数后，该变量中保存通过第四个参数返回的可选项信息的字节数
+
+#include &ltarpa/inet.h>
+int_addr_t inet_addr(const char *string);
+//成功时返回32位大端序整数型值,失败时返回INADDR_NONE
 
 #include &ltsys/socket.h>
 int setsockopt(int sock, int level, int optname, const void *optval, socklen_t optlen);
