@@ -44,5 +44,27 @@ ABEntry:ABEntry():thName(), theAddress(), thePhones(), numTimesConsulted(0) {}
 > 
 
 > #### 条款06:若不想使用编译器自动生成的函数,应明确拒绝
-> 可将相应的成员函数声明为private并不予实现
+> 可将相应的成员函数声明为private并不予实现(默认构造、复制构造、copy assignment、析构函数)  
+
+> #### 条款07:为多态基类声明virtual析构函数  
+> 当derived class对象由一个base class指针被删除,而base class带有一个non-virtual析构函数,其结果未有定义  
+> 实际上通常发生对象的derived成分没被销毁(局部销毁)  
+> 当class不企图被当做base class,不声明virtual析构函数  
+> 如果class带有任何virtual函数,其析构函数也应为virtual  
+
+> #### 条款08:别让异常逃离析构函数  
+> 应在析构函数中捕捉异常并处理  
+> 如果客户需要对某个操作函数抛出的异常做出反应,class应提供一个普通函数执行该操作  
+
+> #### 条款09:绝不在构造和析构过程中调用virtual函数  
+> derived class对象内的base class成分会在derived class自身成分被构造之前先构造妥当  
+> 因此base class构造函数中的virtual函数调用的还是base class内的版本  
+> 析构函数:derived class析构函数执行时,对象内derived class成员变量先被析构,进入base class析构时,调用的virtual还是base class内的版本  
+> 可将相应的virtual改为non-virtual并要求derived class构造函数传递必要的信息给base class构造函数  
+
+> #### 条款10:令operator=返回一个reference to *this  
+> 为实现“连续赋值”的处理  
+
+> #### 条款11:在operator=中处理“自我赋值”
+> 即在operatot=中判断是否为“自我赋值”  
 
