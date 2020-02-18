@@ -3,15 +3,14 @@
 
 > #### 条款02:尽量以const,enum,inline替代#define  
 > 用const替换#define表示常量(包括class常量成员)
-> 
 > 用inline函数替换#define定义的形似函数的宏  
 
 > #### 条款03:尽可能使用const  
-> const成员函数:两个成员函数可以因为常量性不同而被重载,const对象优先执行const成员函数(不改变成员变量),
-> bitwise constness(编译器的做法)与logical constness:主要是探讨类似指针成员变量本身不改变但所指之物有所改变这种情况下是否属于const成员函数的问题
+> const成员函数:两个成员函数可以因为常量性不同而被重载,const对象优先执行const成员函数(不改变成员变量)  
+> bitwise constness(编译器的做法)与logical constness:主要是探讨类似指针成员变量本身不改变但所指之物有所改变这种情况下是否属于const成员函数的问题  
 > 编译器会强制实施bitwise constness但编程时应使用logical constness的思想  
-> mutable关键字:被修饰的成员变量总是会被改变的,即使在const成员函数内
-> 为避免代码重复的问题,可以用const成员函数实现non-const成员函数(示例如下)
+> mutable关键字:被修饰的成员变量总是会被改变的,即使在const成员函数内  
+> 为避免代码重复的问题,可以用const成员函数实现non-const成员函数(示例如下)  
 ```
 Class TextBlock{
 public:
@@ -30,12 +29,12 @@ public:
 ```
 
 > #### 条款04:确定对象被使用前已先被初始化  
-> 对于内置类型对象,应在使用对象之前将其初始化
-> 对于非内置类型对象,应在其构造函数尽量使用初始化列表(效率更高)
-> 可以通过指定无物作为初始化实参的初始化列表构造成员变量(示例如下)
+> 对于内置类型对象,应在使用对象之前将其初始化  
+> 对于非内置类型对象,应在其构造函数尽量使用初始化列表(效率更高)  
+> 可以通过指定无物作为初始化实参的初始化列表构造成员变量(示例如下)  
 ```
 ABEntry:ABEntry():thName(), theAddress(), thePhones(), numTimesConsulted(0) {}
-//若成员变量为const或reference,则一定需要初值而不能赋值
+//若成员变量为const或reference,则一定需要初值而不能赋值  
 //内置类型也能使用
 ```
 
@@ -86,11 +85,27 @@ ABEntry:ABEntry():thName(), theAddress(), thePhones(), numTimesConsulted(0) {}
 > 由于APIs往往要求访问原始资源  
 > 对原始资源的访问可经由显示转换或隐式转换(看情况)  
 
-> #### 成对使用new和delete时要采用相同的形式  
+> #### 条款16:成对使用new和delete时要采用相同的形式  
 > 尽量不对数组形式做typedefs动作(防止使用delete时的误用)  
 
-> #### 以独立语句将newed对象置入智能指针  
+> #### 条款17:以独立语句将newed对象置入智能指针  
 > 防止内存泄露(异常导致内存泄露why)  
+
+> #### 条款18:让接口容易被正确使用,不易被误用  
+
+> #### 条款19:设计class犹如设计type  
+
+> #### 条款20:宁以pass-by-reference-to-const替换pass-by-value  
+> pass-by-reference-to-const通常比较高效且避免了切割问题  
+> 小型的type并不意味着copy构造函数不昂贵  
+
+> #### 条款21:必须返回对象时,别妄想返回其reference  
+> 返回local stack对象,会使pointer或reference指向一个废除的空间  
+> 返回heap-allocated对象,客户不能正确释放其空间,导致内存泄露  
+> 返回local static对象,想象返回多个对象时,其都指向同一个static对象  
+
+> #### 条款22:将成员变量声明为private  
+> proteced并不比public更具封装性  
 
 
 
