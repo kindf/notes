@@ -107,5 +107,23 @@ ABEntry:ABEntry():thName(), theAddress(), thePhones(), numTimesConsulted(0) {}
 > #### 条款22:将成员变量声明为private  
 > proteced并不比public更具封装性  
 
+> #### 条款23:宁以non-member、non-friend替换member函数  
+> 这样做可增加分装性、包裹弹性和机能扩充性  
 
+> #### 条款24:若所有参数皆需类型转换,请为此采用non-member函数  
+
+> #### 条款25:考虑写出一个不抛异常的swap函数  
+> 没看懂。。
+
+> #### 条款26:尽可能延后变量定义式的出现时间  
+> 有助于增加程序清晰度和改善程序效率  
+
+> #### 条款27:尽量少做转型动作  
+> const_case<T>(expression):通常被用来将对象的常量性移除  
+> dynamic_case<T>(expression):主要用于执行"安全向下转型"  
+> reinterpret_case<T>(expression):意图执行低级转型,实际动作及结果可能取决于编译器  
+> static_case<T>(expression):用于强迫隐式转换  
+
+> #### 条款28:避免返回handles指向对象内部成分  
+> hanles包括references、指针以及迭代器  
 
