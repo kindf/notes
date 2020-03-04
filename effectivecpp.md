@@ -127,3 +127,61 @@ ABEntry:ABEntry():thName(), theAddress(), thePhones(), numTimesConsulted(0) {}
 > #### 条款28:避免返回handles指向对象内部成分  
 > hanles包括references、指针以及迭代器  
 
+> #### 条款29:为"异常安全"而努力是值得的  
+> 异常安全的两个条件:不泄露任何资源和不允许数据败坏  
+
+> #### 条款30:透彻了解inlining的里里外外  
+> 过度使用inlining函数会导致代码膨胀  
+> inlining只是对编译器的申请而不是强制命令  
+> 所有对virtual函数(除非是最平淡无奇的)的调用会使inlining落空(inline在编译期而virtual调用函数在运行期才确定)  
+> 构造函数和析构函数往往不好inline(编译器会为其生成较复杂的代码)  
+
+> #### 条款31:将文件间的编译依存关系将至最低  
+> 
+
+> #### 条款32:确定你的public继承塑模出is-a关系  
+> 即devired class对象适用于任何base class适用的场合  
+
+> #### 条款33:避免遮掩继承而来的名称  
+> derived class内的名称会遮掩base class内的名称,可使用using声明式或转交函数避免  
+
+> #### 条款34:区分接口继承和实现继承  
+> 纯虚函数表示其derived class必须重写该函数,而base class中通常不给出具体实现  
+> 要实现"必须重写"和"父类提供实现"两重语义,可在base class中声明pure virtual并提供一个对应的non-virtual版本的实现  
+> 或者在base class中直接定义pure virtual函数的实现  
+
+> #### 条款35:考虑virtual函数以外的其他选择  
+
+> ####  条款36:绝不重新定义继承而来的non-virtual函数  
+> 注意使用指针调用重新定义virtual函数和重新定义non-virtual函数的区别  
+> 注意是"绝不" 
+
+> #### 条款37:绝不重新定义继承而来的缺省参数值  
+> 对于non-virtual函数,参考条款36  
+> 对于virtual函数:由于virtual函数是动态绑定的而缺省参数值是静态绑定的,即"调用一个定义于derived class内的virtual函数,使用的却是base class为其所指定的缺省参数值  
+
+> #### 条款38:通过复合塑模出has-a或"根据某物是实现出"  
+> 复合意味着has-a或者"根据某物实现出"  
+> public继承意味着is-a  
+
+> #### 条款39:明智而审慎地使用private继承  
+> private继承意味着"根据某物实现出",与复合类似(尽可能使用复合)  
+
+> #### 条款40:明智而审慎地使用多重继承  
+> 
+
+> #### 条款41:了解隐式接口和编译期多态  
+> 了解"编译期多态"与"运行期多态"的区别  
+
+> #### 条款42:了解typename的双重定义  
+> 在嵌套从属类型名称前面加上关键字typename  
+> 不得在base class lists(基类列)或member initialization list(成员初值列)内以typename作为base class修饰符  
+
+> #### 条款43:学习处理模板化基类内的名称  
+> 通过继承模板类的模板类中,调用父类的成员函数可能导致编译报错  
+> 解决1:显示调用this->  
+> 解决2:使用using声明式(条款33)  
+> 解决3:指明调用函数位于base class中  
+
+> #### 条款44:将与参数无关的代码抽离templates  
+> 
