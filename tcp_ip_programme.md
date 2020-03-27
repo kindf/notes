@@ -150,3 +150,50 @@
 #### 第十六章 关于I/O流分离的其他内容  
 
 #### 第十七章 优于select的epoll
+> epoll相关的函数与结构体  
+> > ```
+> > struct epoll_event
+> > {
+> >     __unint32_t events;
+> >     epoll_data_t data; 
+> > }
+> > ```
+> > 
+> > ```
+> > typedef union epoll_data
+> > {
+> >     void* ptr;
+> >     int fd;
+> >     __unint32_t u32;
+> >     __unint64_t u64;
+> > } epoll_data_t;
+> > ```
+> > 
+> > ```
+> > int epoll_create(int size);
+> > //成功时返回epoll文件描述符，失败时返回-1
+> > ```
+> > 
+> > ```
+> >  int epoll_ctl(int epfd, int op, int fd, struct epoll_event* event);
+> >  //成功时返回0，失败时返回-1
+> >  //op：指定操作(EPOLL_CTL_ADD:注册，EPOLL_CTL_DEL：删除，EPOLL_CTL_MOD：改变)
+> >  ```
+> >  
+> >  ```
+> >  int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
+> >  //成功时返回发生事件的文件描述符数，失败时返回-1
+> >  //events：发生事件文件描述符集合的结构体地址值(需要动态分配)
+> >  //timeout:以1/1000秒为单位，传-1时，一直等待知道事件发生  
+> >  ```
+
+> epoll_event成员中events的事件类型  
+> > EPOLLIN：需要读取数据的情况()   
+> > EPOLLOUT：输出缓冲为空，可以立即发送数据的情况  
+> > EPOLLPRI：收到OOB数据的情况  
+> > EPOLLRDHUP：断开连接或者半关闭的情况，在边缘触发方式下非常有用  
+> > EPOLLERR：发生错误的情况  
+> > EPOLLET：以边缘触发的方式得到事件通知  
+> > EPOLLONESHOT：发生一次事件后，对应文件描述符不再收到事件通知  
+
+
