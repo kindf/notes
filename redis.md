@@ -1,4 +1,4 @@
-#### redis网络模块分析
+﻿#### redis网络模块分析
 
 > #### struct redisServer结构体  
 >
@@ -334,8 +334,62 @@
 > >     	return 0;
 > >     }
 > > ```
-> >
+> #### acceptTcpHandler()函数
+> > ```
 > > 
+> > dfkldjls
+> > ```
 >
-> 
-
+> #### main函数调用aeMain()执行主循环
+> > ```
+> > void aeMain(aeEventLoop *eventLoop) {
+> >     eventLoop->stop = 0;
+> >     while (!eventLoop->stop) {
+> >         if (eventLoop->beforesleep != NULL)
+> >             eventLoop->beforesleep(eventLoop);
+> >         aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+> >     }
+> > }
+> > ```
+>
+> #### aeProcessEvents()调用  
+> >
+> > ```
+> > int aeProcessEvents(aeEventLoop *eventLoop, int flags)
+> > {
+> >     ... //忽略无关代码
+> >     for (j = 0; j < numevents; j++) 
+> >     {
+> >         aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
+> >         int mask = eventLoop->fired[j].mask;
+> >         int fd = eventLoop->fired[j].fd;
+> >         int fired = 0; 
+> >
+> >         int invert = fe->mask & AE_BARRIER;
+> > 
+> >         if (!invert && fe->mask & mask & AE_READABLE) {
+> >             fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+> >             fired++;
+> >         }
+> >         if (fe->mask & mask & AE_WRITABLE) {
+> >             if (!fired || fe->wfileProc != fe->rfileProc) {
+> >                 fe->wfileProc(eventLoop,fd,fe->clientData,mask);
+> >                 fired++;
+> >             }
+> >         }
+> > 
+> >         if (invert && fe->mask & mask & AE_READABLE) {
+> >             if (!fired || fe->wfileProc != fe->rfileProc) {
+> >                 fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+> >                 fired++;
+> >             }
+> >         }
+> >         processed++;
+> >     }
+> > }
+> >     if (flags & AE_TIME_EVENTS)
+> >         processed += processTimeEvents(eventLoop);
+> > 
+> >     return processed;
+> > } 
+> > ```
