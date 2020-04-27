@@ -1,4 +1,4 @@
-#### redis网络模块分析
+﻿#### redis网络模块分析
 
 > #### struct redisServer结构体  
 >
@@ -16,47 +16,45 @@
 > > }
 > > ```
 
-> #### initServerConfig()函数：初始化服务器的配置(实际上就是初始化全局变量struct redisServer server的一些成员变量)
+> #### initServerConfig()函数
 >
-> >  erver.port = REDIS_SERVERPORT;  (指定监听端口号6379)
+> >  初始化服务器的配置(实际上就是初始化全局变量struct redisServer server的一些成员变量)
 > >
-> >  server.tcp_backlog = REDIS_TCP_BACKLOG;  (监听队列大小511)  
-> >
-> >  erver.ipfd_count = 0;  
-> >
-> >  erver.bindaddr_count = 0;
-> >
-> > ```
-> > void initServerConfig() 
-> > {
-> > 	...		//忽略无关代码
-> > 	erver.port = REDIS_SERVERPORT;  (指定监听端口号6379)
-> >  	server.tcp_backlog = REDIS_TCP_BACKLOG;  (监听队列大小511)
-> >  	erver.ipfd_count = 0; 
-> >  	erver.bindaddr_count = 0;
+> >  ```
+> >void initServerConfig() 
+> >  {
+> >	...		//忽略无关代码
+> >  	erver.port = REDIS_SERVERPORT;  (指定监听端口号6379)
+> >	server.tcp_backlog = REDIS_TCP_BACKLOG;  (监听队列大小511)
+> > 	erver.ipfd_count = 0; 
+> > 	erver.bindaddr_count = 0;
 > > 	...		//忽略无关代码
 > > }
 > > ```
->
-> #### initServer()函数：初始化srever(为其分配各种空间)
->
-> > listenToPort(server.port,server.ipfd,&server.ipfd_count
+> 
 
 #### socket创建的过程  
 
 > #### 在main函数中调用initServerConfig()初始化server的配置  
 >
+> > 初始化监听端口号、监听队列大小、最大客户端连接数
+> >
 > > ```
-> > server.port = REDIS_SERVERPORT;  (指定监听端口号6379)
-> > server.tcp_backlog = REDIS_TCP_BACKLOG;  (监听队列大小511)  
-> > erver.ipfd_count = 0;  
-> > erver.bindaddr_count = 0;
-> > server.maxclients = REDIS_MAX_CLIENTS;	(10000)
+> > void initServerConfig() 
+> > {
+> > 	...		//忽略无关代码
+> > 	server.port = REDIS_SERVERPORT;  (指定监听端口号6379)
+> > 	server.tcp_backlog = REDIS_TCP_BACKLOG;  (监听队列大小511)  
+> > 	server.ipfd_count = 0;  
+> > 	server.bindaddr_count = 0;
+> > 	server.maxclients = REDIS_MAX_CLIENTS;	(10000最大客户端连接)
+> > 	...		//忽略无关代码
+> > }
 > > ```
 >
 > #### 在main函数中的initserver()初始化server  
 >
-> > ##### initserver()中调用listenToPort()
+> > ##### initserver()中调用listenToPort()建立监听套接字
 >
 > > ```
 > > if (server.port != 0 &&
@@ -78,7 +76,7 @@
 > > }
 > > ```
 > >
-> > ##### 实际上是调用_anetTcpServer()创听套接字
+> > ##### 实际上是调用_anetTcpServer()创建套接字
 > >
 > > ```
 > > if ((rv = getaddrinfo(bindaddr,_port,&hints,&servinfo)) != 0) {
@@ -123,7 +121,7 @@
 > ```
 > typedef struct aeEventLoop 
 > {
->    	// 目前已注册的最大描述符
+>     // 目前已注册的最大描述符
 >     int maxfd;   /* highest file descriptor currently registered */
 >     // 目前已追踪的最大描述符
 >     int setsize; /* max number of file descriptors tracked */
@@ -131,17 +129,17 @@
 >     long long timeEventNextId;
 >     // 最后一次执行时间事件的时间
 >     time_t lastTime;     /* Used to detect system clock skew */
->     // 已注册的文件事件
+>     // 已注册的文件事件数组
 >     aeFileEvent *events; /* Registered events */
->     // 已就绪的文件事件
+>     // 已就绪的文件事件数组
 >     aeFiredEvent *fired; /* Fired events */
 >     // 时间事件
 >     aeTimeEvent *timeEventHead;
 >     // 事件处理器的开关
 >     int stop;
->     // 多路复用库的私有数据
+>     // 多路复用库的私有数据（对于epoll来说就是fd和events的结构体）
 >     void *apidata; /* This is used for polling API specific data */
->     // 在处理事件前要执行的函数
+>     // 在处理事件前要执行的函数（函数
 >     aeBeforeSleepProc *beforesleep;
 > } aeEventLoop;  
 > ```
@@ -166,26 +164,28 @@
 > > ```
 > > aeEventLoop *aeCreateEventLoop(int setsize) 
 > > {
-> >     aeEventLoop *eventLoop;
-> >     int i;
-> >     // 创建事件状态结构
-> >     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
-> >     // 初始化文件事件结构和已就绪文件事件结构数组
-> >     eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
-> >     eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
-> >     if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
-> >     // 设置数组大小
-> >     eventLoop->setsize = setsize;
-> >     // 初始化执行最近一次执行时间
-> >     eventLoop->lastTime = time(NULL);
-> >     // 初始化时间事件结构
-> >     eventLoop->timeEventHead = NULL;
-> >     eventLoop->timeEventNextId = 0;
-> >     eventLoop->stop = 0;
-> >     eventLoop->maxfd = -1;
-> >     eventLoop->beforesleep = NULL;
-> >     if (aeApiCreate(eventLoop) == -1) goto err;
-> >     /* Events with mask == AE_NONE are not set. So let's initialize the
+> >  aeEventLoop *eventLoop;
+> >  int i;
+> >  // 创建事件状态结构
+> >  if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+> >  // 初始化文件事件结构和已就绪文件事件结构数组
+> >  eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
+> >  //aeFileEvent结构体只有int fd和int mask两个成员
+> >  
+> >  eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
+> >  if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
+> >  // 设置数组大小
+> >  eventLoop->setsize = setsize;
+> >  // 初始化执行最近一次执行时间
+> >  eventLoop->lastTime = time(NULL);
+> >  // 初始化时间事件结构
+> >  eventLoop->timeEventHead = NULL;
+> >  eventLoop->timeEventNextId = 0;
+> >  eventLoop->stop = 0;
+> >  eventLoop->maxfd = -1;
+> >  eventLoop->beforesleep = NULL;
+> >  if (aeApiCreate(eventLoop) == -1) goto err;
+> >  /* Events with mask == AE_NONE are not set. So let's initialize the
 > >      * vector with it. */
 > >     // 初始化监听事件
 > >     for (i = 0; i < setsize; i++)
@@ -241,20 +241,22 @@
 >
 > > 这里的sever.ipfd_count == 1(只有一个监听套接字)，所以实际上是创建监听套接字的文件事件  
 > >
-> >     void initServer() 
-> >     {
-> >     	...		//忽略无关代码
-> >     	for (j = 0; j < server.ipfd_count; j++) 
-> >     	{
-> >         	if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
-> >             	acceptTcpHandler,NULL) == AE_ERR)
-> >             	{
-> >                 	redisPanic(
-> >                     	"Unrecoverable error creating server.ipfd file event.");
-> >             	}
-> >          }
-> >          ...	//忽略无关代码
-> >     }
+> > ```
+> >  void initServer() 
+> >  {
+> >  	...		//忽略无关代码
+> >  	for (j = 0; j < server.ipfd_count; j++) 
+> >  	{
+> >      	if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
+> >          	acceptTcpHandler,NULL) == AE_ERR)
+> >          	{
+> >              	redisPanic(
+> >                  	"Unrecoverable error creating server.ipfd file event.");
+> >          	}
+> >       }
+> >       ...	//忽略无关代码
+> >  }
+> > ```
 >
 > #### aeCreateFileEvent()中注册监听socket的读事件以及读事件的回调
 >
@@ -266,7 +268,7 @@
 > >     if (fd >= eventLoop->setsize) return AE_ERR;
 > >     // 取出文件事件结构
 > >     aeFileEvent *fe = &eventLoop->events[fd];
-> >     // 监听指定 fd 的指定事件
+> >     // 注册时间到epoll中
 > >     if (aeApiAddEvent(eventLoop, fd, mask) == -1)
 > >         return AE_ERR;
 > >     // 设置文件事件类型，以及事件的处理器
@@ -282,34 +284,79 @@
 > > }
 > > ```
 >
-> #### 监听socket读事件的回调函数acceptTcpHandler()
+> #### 监听socket读事件的回调函数acceptTcpHandler()，先通过anetTcpAccept()函数与客户端建立连接，然后调用acceptCommonHandler()建立redisClient对象(即每个redisClient代表每个客户端连接)
 >
-> ```
-> void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask)
-> {
->     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
->     char cip[REDIS_IP_STR_LEN];
->     REDIS_NOTUSED(el);
->     REDIS_NOTUSED(mask);
->     REDIS_NOTUSED(privdata);
-> 
->     while(max--) {
->         // accept 客户端连接
->         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
->         if (cfd == ANET_ERR) {
->             if (errno != EWOULDBLOCK)
->                 redisLog(REDIS_WARNING,
->                     "Accepting client connection: %s", server.neterr);
->             return;
->         }
->         redisLog(REDIS_VERBOSE,"Accepted %s:%d", cip, cport);
->         // 为客户端创建客户端状态（redisClient）
->         acceptCommonHandler(cfd,0);
->     }
-> }
-> ```
+> > ```
+> > void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask)
+> > {
+> >     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
+> >     char cip[REDIS_IP_STR_LEN];
+> >     REDIS_NOTUSED(el);	//设置成void类型
+> >     REDIS_NOTUSED(mask);
+> >     REDIS_NOTUSED(privdata);
+> > 
+> >     while(max--) {
+> >         // accept 客户端连接
+> >         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
+> >         if (cfd == ANET_ERR) {
+> >             if (errno != EWOULDBLOCK)
+> >                 redisLog(REDIS_WARNING,
+> >                     "Accepting client connection: %s", server.neterr);
+> >             return;
+> >         }
+> >         redisLog(REDIS_VERBOSE,"Accepted %s:%d", cip, cport);
+> >         // 为客户端创建客户端状态（redisClient）
+> >         acceptCommonHandler(cfd,0);
+> >     }
+> > }
+> > ```
 >
-> 
+> #### acceptTcpHandler()调用anetTcpAccept()等待连接返回   
+>
+> >```
+> >int anetTcpAccept(char *err, int s, char *ip, size_t ip_len, int *port) 
+> >{
+> >    int fd;
+> >    struct sockaddr_storage sa;
+> >    socklen_t salen = sizeof(sa);
+> >    if ((fd = anetGenericAccept(err,s,(struct sockaddr*)&sa,&salen)) == -1)
+> >        return ANET_ERR;
+> >
+> >    if (sa.ss_family == AF_INET) {
+> >        struct sockaddr_in *s = (struct sockaddr_in *)&sa;
+> >        if (ip) inet_ntop(AF_INET,(void*)&(s->sin_addr),ip,ip_len);
+> >        if (port) *port = ntohs(s->sin_port);
+> >    } else {
+> >        struct sockaddr_in6 *s = (struct sockaddr_in6 *)&sa;
+> >        if (ip) inet_ntop(AF_INET6,(void*)&(s->sin6_addr),ip,ip_len);
+> >        if (port) *port = ntohs(s->sin6_port);
+> >    }
+> >    return fd;
+> >}
+> >```
+>
+> #### anetTcpAccept()实际上是调用anetGenericAccept()函数来accept套接字  
+>
+> > ```
+> > static int anetGenericAccept(char *err, int s, struct sockaddr *sa, socklen_t *len) {
+> >     int fd;
+> >     while(1) {
+> >         fd = accept(s,sa,len);
+> >         if (fd == -1) {
+> >             if (errno == EINTR) //信号中断后需要继续执行,并非accept错误
+> >                 continue;
+> >             else {
+> >                 anetSetError(err, "accept: %s", strerror(errno));
+> >                 return ANET_ERR;
+> >             }
+> >         }
+> >         break;
+> >     }
+> >     return fd;
+> > }
+> > ```
+> >
+> > 
 >
 > #### aeApiAddEvent()中往epoll中注册监听socket的读事件()
 >
@@ -334,63 +381,117 @@
 > >     	return 0;
 > >     }
 > > ```
-> 
-> #### acceptTcpHandler()函数
+> #### acceptTcpHandler()函数:在aeProcessEvents()函数中被调用(回调)
 > > ```
-> > 
-> > dfkldjls
+> > void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
+> >     int cport, cfd, max = MAX_ACCEPTS_PER_CALL;
+> >     char cip[REDIS_IP_STR_LEN];
+> >     REDIS_NOTUSED(el);	(设为void类型)
+> >     REDIS_NOTUSED(mask);
+> >     REDIS_NOTUSED(privdata);
+> >     while(max--) {
+> >         // accept 客户端连接
+> >         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
+> >         if (cfd == ANET_ERR) {
+> >             if (errno != EWOULDBLOCK)
+> >                 redisLog(REDIS_WARNING,
+> >                     "Accepting client connection: %s", server.neterr);
+> >             return;
+> >         }
+> >         redisLog(REDIS_VERBOSE,"Accepted %s:%d", cip, cport);
+> >         // 为客户端创建客户端状态（redisClient）
+> >         acceptCommonHandler(cfd,0);
+> >     }
+> > }
 > > ```
 >
 > #### main函数调用aeMain()执行主循环
 > > ```
-> > void aeMain(aeEventLoop *eventLoop) {
-> >     eventLoop->stop = 0;
-> >     while (!eventLoop->stop) {
-> >         if (eventLoop->beforesleep != NULL)
-> >             eventLoop->beforesleep(eventLoop);
-> >         aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
-> >     }
+> > void aeMain(aeEventLoop *eventLoop) 
+> > {
+> >  	eventLoop->stop = 0;
+> >  	while (!eventLoop->stop) 
+> >  	{
+> >      	if (eventLoop->beforesleep != NULL)
+> >          	eventLoop->beforesleep(eventLoop);
+> >      	aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+> >  	}
 > > }
 > > ```
 >
-> #### aeProcessEvents()调用  
+> #### aeProcessEvents()调用 :根据aeApiPoll()函数返回就绪文件描述符调用对应的回调函数
 > >
-> > ```
-> > int aeProcessEvents(aeEventLoop *eventLoop, int flags)
+> >```
+> >int aeProcessEvents(aeEventLoop *eventLoop, int flags)
+> >{
+> >... //忽略无关代码(主要处理参数tvp)
+> >numevents = aeApiPoll(eventLoop, tvp);
+> >for (j = 0; j < numevents; j++) 
+> >{
+> >    aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
+> >    int mask = eventLoop->fired[j].mask;
+> >    int fd = eventLoop->fired[j].fd;
+> >    int fired = 0; 
+> >
+> >    int invert = fe->mask & AE_BARRIER;
+> >
+> >    if (!invert && fe->mask & mask & AE_READABLE) {
+> >        fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+> >        fired++;
+> >    }
+> >    if (fe->mask & mask & AE_WRITABLE) {
+> >        if (!fired || fe->wfileProc != fe->rfileProc) {
+> >            fe->wfileProc(eventLoop,fd,fe->clientData,mask);
+> >            fired++;
+> >        }
+> >    }
+> >
+> >    if (invert && fe->mask & mask & AE_READABLE) {
+> >        if (!fired || fe->wfileProc != fe->rfileProc) {
+> >            fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+> >            fired++;
+> >        }
+> >    }
+> >    processed++;
+> >}
+> >}
+> >if (flags & AE_TIME_EVENTS)
+> >    processed += processTimeEvents(eventLoop);
+> >
+> >return processed;
+> >} 
+> >```
+>
+> #### aeApiPoll()函数调用(epoll的实现):执行epoll_wait,并将就绪文件描述符添加到eventloop.fired数组中,并设置相应的mask值
+>
+> > ````
+> > static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp)
 > > {
-> >     ... //忽略无关代码
-> >     for (j = 0; j < numevents; j++) 
-> >     {
-> >         aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
-> >         int mask = eventLoop->fired[j].mask;
-> >         int fd = eventLoop->fired[j].fd;
-> >         int fired = 0; 
-> >
-> >         int invert = fe->mask & AE_BARRIER;
+> >     aeApiState *state = eventLoop->apidata;
+> >     int retval, numevents = 0;// 等待时间
+> >     retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
+> >             tvp ? (tvp->tv_sec*1000 + tvp->tv_usec/1000) : -1);// 有至少一个事件就绪？
+> >     if (retval > 0) {
+> >         int j;
+> >         // 为已就绪事件设置相应的模式
+> >         // 并加入到 eventLoop 的 fired 数组中
+> >         numevents = retval;
+> >         for (j = 0; j < numevents; j++) {
+> >             int mask = 0;
+> >             struct epoll_event *e = state->events+j;
 > > 
-> >         if (!invert && fe->mask & mask & AE_READABLE) {
-> >             fe->rfileProc(eventLoop,fd,fe->clientData,mask);
-> >             fired++;
-> >         }
-> >         if (fe->mask & mask & AE_WRITABLE) {
-> >             if (!fired || fe->wfileProc != fe->rfileProc) {
-> >                 fe->wfileProc(eventLoop,fd,fe->clientData,mask);
-> >                 fired++;
-> >             }
-> >         }
+> >             if (e->events & EPOLLIN) mask |= AE_READABLE;
+> >             if (e->events & EPOLLOUT) mask |= AE_WRITABLE;
+> >             if (e->events & EPOLLERR) mask |= AE_WRITABLE;
+> >             if (e->events & EPOLLHUP) mask |= AE_WRITABLE;
 > > 
-> >         if (invert && fe->mask & mask & AE_READABLE) {
-> >             if (!fired || fe->wfileProc != fe->rfileProc) {
-> >                 fe->rfileProc(eventLoop,fd,fe->clientData,mask);
-> >                 fired++;
-> >             }
+> >             eventLoop->fired[j].fd = e->data.fd;
+> >             eventLoop->fired[j].mask = mask;
 > >         }
-> >         processed++;
 > >     }
+> >     return numevents; // 返回已就绪事件个数
 > > }
-> >     if (flags & AE_TIME_EVENTS)
-> >         processed += processTimeEvents(eventLoop);
+> > ````
+> >
 > > 
-> >     return processed;
-> > } 
-> > ```
+
