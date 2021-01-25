@@ -85,6 +85,8 @@
 >
 >  &emsp; 2.写时复制：创建子进程时并不复制父进程的整个地址空间，而是复制父进程的页表，当有任意进程试图向该内存页写入，则引起缺页异常，此时才为进程分配新的内存空间  
 >
+> ##### 几个常见的信号 
+>
 > ##### 有关malloc(),calloc(),realloc()  
 > &emsp; void* malloc(size_t, size):分配指定大小内存    
 > &emsp; void* calloc(size_t number_of_elements, size_t element_size):分配个数(number_of_elements)乘以单位大小(element_size)的内存，并将其初始化为0  
