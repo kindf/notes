@@ -1,3 +1,9 @@
+---
+title: "Cenos8安装json-c库"
+date: 2021-01-26T22:15:55+08:00
+draft: true
+---
+
 #### Cenos8安装json-c库
 
 ##### 1、现把文件从https://github.com/json-c/json-c克隆到本地目录（本人存放在~/Documents/json中
