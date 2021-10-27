@@ -33,7 +33,7 @@
 
 # Git基本工作流程
 
-* ![](C:\Users\Administrator\Desktop\picture\git工作流.png)
+* [![5b8uCt.png](https://z3.ax1x.com/2021/10/27/5b8uCt.png)](https://imgtu.com/i/5b8uCt)
 
 * #### 添加文件到暂存区(staging area)：
 
